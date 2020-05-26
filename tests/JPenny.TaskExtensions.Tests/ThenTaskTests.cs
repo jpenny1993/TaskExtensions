@@ -1,3 +1,4 @@
+using System;
 using System.Threading.Tasks;
 using Moq;
 using NUnit.Framework;
@@ -67,7 +68,7 @@ namespace JPenny.TaskExtensions.Tests
             var fixture = Tasks.Then(task, mockObject.Action);
 
             // Assert
-            Assert.ThrowsAsync<TaskCanceledException>(async () => await fixture);
+            Assert.ThrowsAsync<Exception>(async () => await fixture);
 
             mock.Verify(x => x.Action(It.IsAny<int>()), Times.Never);
         }

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace JPenny.TaskExtensions
@@ -8,6 +9,50 @@ namespace JPenny.TaskExtensions
     /// </summary>
     public static class Tasks
     {
+        private const TaskContinuationOptions DefaultOptions = TaskContinuationOptions.PreferFairness | TaskContinuationOptions.ExecuteSynchronously;
+
+        private const TaskContinuationOptions CancelOptions = TaskContinuationOptions.OnlyOnCanceled | DefaultOptions;
+        private const TaskContinuationOptions ErrorOptions = TaskContinuationOptions.OnlyOnFaulted | DefaultOptions;
+        private const TaskContinuationOptions SuccessOptions = TaskContinuationOptions.OnlyOnRanToCompletion | DefaultOptions;
+
+        // TODO: maybe do this
+        //public static Task<TNewResult> ContinueWith<TResult, TNewResult>(
+        //    this Task<TResult> task,
+        //    Func<Task<TResult>, Task<TNewResult>> continueWithTask,
+        //    CancellationToken cancellationToken)
+        //{
+        //    if (cancellationToken == default)
+        //    {
+        //        cancellationToken = CancellationToken.None;
+        //    }
+
+        //    var tcs = new TaskCompletionSource<TNewResult>();
+        //    task.ContinueWith(t =>
+        //    {
+        //        if (cancellationToken.IsCancellationRequested)
+        //        {
+        //            tcs.SetCanceled();
+        //        }
+        //        continueWithTask(t).ContinueWith(t2 =>
+        //        {
+        //            if (cancellationToken.IsCancellationRequested || t2.IsCanceled)
+        //            {
+        //                tcs.TrySetCanceled();
+        //            }
+        //            else if (t2.IsFaulted)
+        //            {
+        //                tcs.TrySetException(t2.Exception);
+        //            }
+        //            else
+        //            {
+        //                tcs.TrySetResult(t2.Result);
+        //            }
+        //        }).ConfigureAwait(false);
+        //    }).ConfigureAwait(false);
+
+        //    return tcs.Task;
+        //}
+
         /// <summary>
         /// Runs the provided action when the task has finished.
         /// It will run regardless of if the task has completed successfully or not.
@@ -16,9 +61,19 @@ namespace JPenny.TaskExtensions
         /// <param name="task">The task being run.</param>
         /// <param name="alwaysAction">The action to run when the task has succeeded.</param>
         /// <returns>The provided task for further extensions.</returns>
-        public static Task<TResult> Finally<TResult>(this Task<TResult> task, Action<Task<TResult>> alwaysAction)
+        public static Task<TResult> Finally<TResult>(
+            this Task<TResult> task,
+            Action<Task<TResult>> alwaysAction,
+            CancellationToken cancellationToken = default,
+            TaskScheduler taskScheduler = default)
         {
-            task.ContinueWith(t => alwaysAction(t), TaskContinuationOptions.PreferFairness | TaskContinuationOptions.ExecuteSynchronously)
+            if (cancellationToken == default)
+                cancellationToken = CancellationToken.None;
+
+            if (taskScheduler == default)
+                taskScheduler = TaskScheduler.Current;
+
+            task.ContinueWith(alwaysAction, cancellationToken, DefaultOptions, taskScheduler)
                 .ConfigureAwait(false);
             return task;
         }
@@ -30,9 +85,19 @@ namespace JPenny.TaskExtensions
         /// <param name="task">The task being run.</param>
         /// <param name="cancelledAction">The action to run when the task is cancelled.</param>
         /// <returns>The provided task for further extensions.</returns>
-        public static Task<TResult> OnCancelled<TResult>(this Task<TResult> task, Action cancelledAction)
+        public static Task<TResult> OnCancelled<TResult>(
+            this Task<TResult> task,
+            Action cancelledAction,
+            CancellationToken cancellationToken = default,
+            TaskScheduler taskScheduler = default)
         {
-            task.ContinueWith(_ => cancelledAction(), TaskContinuationOptions.OnlyOnCanceled | TaskContinuationOptions.ExecuteSynchronously)
+            if (cancellationToken == default)
+                cancellationToken = CancellationToken.None;
+
+            if (taskScheduler == default)
+                taskScheduler = TaskScheduler.Current;
+
+            task.ContinueWith(_ => cancelledAction(), cancellationToken, CancelOptions, taskScheduler)
                 .ConfigureAwait(false);
             return task;
         }
@@ -44,9 +109,19 @@ namespace JPenny.TaskExtensions
         /// <param name="task">The task being run.</param>
         /// <param name="errorHandler">The action to run when the exception is caught.</param>
         /// <returns>The provided task for further extensions.</returns>
-        public static Task<TResult> OnException<TResult>(this Task<TResult> task, Action<AggregateException> errorHandler)
+        public static Task<TResult> OnException<TResult>(
+            this Task<TResult> task,
+            Action<AggregateException> errorHandler,
+            CancellationToken cancellationToken = default,
+            TaskScheduler taskScheduler = default)
         {
-            task.ContinueWith(t => errorHandler(t.Exception), TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously)
+            if (cancellationToken == default)
+                cancellationToken = CancellationToken.None;
+
+            if (taskScheduler == default)
+                taskScheduler = TaskScheduler.Current;
+
+            task.ContinueWith(t => errorHandler(t.Exception), cancellationToken, ErrorOptions, taskScheduler)
                 .ConfigureAwait(false);
             return task;
         }
@@ -58,9 +133,19 @@ namespace JPenny.TaskExtensions
         /// <param name="task">The task being run.</param>
         /// <param name="errorHandler">The action to run when the exception is caught.</param>
         /// <returns>The provided task for further extensions.</returns>
-        public static Task<TResult> OnException<TException, TResult>(this Task<TResult> task, Action<TException> errorHandler)
+        public static Task<TResult> OnException<TException, TResult>(
+            this Task<TResult> task,
+            Action<TException> errorHandler,
+            CancellationToken cancellationToken = default,
+            TaskScheduler taskScheduler = default)
             where TException : Exception
         {
+            if (cancellationToken == default)
+                cancellationToken = CancellationToken.None;
+
+            if (taskScheduler == default)
+                taskScheduler = TaskScheduler.Current;
+
             task.ContinueWith(continuation => {
                 continuation.Exception.Handle(error =>
                 {
@@ -72,8 +157,7 @@ namespace JPenny.TaskExtensions
 
                     return isEx;
                 });
-            }, TaskContinuationOptions.OnlyOnFaulted |
-               TaskContinuationOptions.ExecuteSynchronously)
+            }, cancellationToken, ErrorOptions, taskScheduler)
             .ConfigureAwait(false);
             return task;
         }
@@ -85,9 +169,19 @@ namespace JPenny.TaskExtensions
         /// <param name="task">The task being run.</param>
         /// <param name="successAction">The action to run when the task has succeeded.</param>
         /// <returns>The provided task for further extensions.</returns>
-        public static Task<TResult> OnSuccess<TResult>(this Task<TResult> task, Action<TResult> successAction)
+        public static Task<TResult> OnSuccess<TResult>(
+            this Task<TResult> task,
+            Action<TResult> successAction,
+            CancellationToken cancellationToken = default,
+            TaskScheduler taskScheduler = default)
         {
-            task.ContinueWith(t => successAction(t.Result), TaskContinuationOptions.OnlyOnRanToCompletion | TaskContinuationOptions.ExecuteSynchronously)
+            if (cancellationToken == default)
+                cancellationToken = CancellationToken.None;
+
+            if (taskScheduler == default)
+                taskScheduler = TaskScheduler.Current;
+
+            task.ContinueWith(t => successAction(t.Result), cancellationToken, SuccessOptions, taskScheduler)
                 .ConfigureAwait(false);
             return task;
         }
@@ -100,9 +194,19 @@ namespace JPenny.TaskExtensions
         /// <param name="task">The task being run.</param>
         /// <param name="followingAction">The following action to run using the result of the task.</param>
         /// <returns>The resultant task of the following task.</returns>
-        public static Task Then<TResult>(this Task<TResult> task, Action<TResult> followingAction)
+        public static Task Then<TResult>(
+            this Task<TResult> task,
+            Action<TResult> followingAction,
+            CancellationToken cancellationToken = default,
+            TaskScheduler taskScheduler = default)
         {
-            return task.ContinueWith(t => followingAction(t.Result), TaskContinuationOptions.OnlyOnRanToCompletion | TaskContinuationOptions.ExecuteSynchronously);
+            if (cancellationToken == default)
+                cancellationToken = CancellationToken.None;
+
+            if (taskScheduler == default)
+                taskScheduler = TaskScheduler.Current;
+
+            return task.ContinueWith(t => followingAction(t.Result), cancellationToken, SuccessOptions, taskScheduler);
         }
 
         /// <summary>
@@ -113,9 +217,49 @@ namespace JPenny.TaskExtensions
         /// <param name="task">The task being run.</param>
         /// <param name="followingAction">The following action to run using the result of the task.</param>
         /// <returns>The resultant task of the following task.</returns>
-        public static Task<TNewResult> Then<TResult, TNewResult>(this Task<TResult> task, Func<TResult, TNewResult> followingAction)
+        public static Task<TNewResult> Then<TResult, TNewResult>(
+            this Task<TResult> task,
+            Func<TResult, TNewResult> followingAction,
+            CancellationToken cancellationToken = default,
+            TaskScheduler taskScheduler = default)
         {
-            return task.ContinueWith(t => followingAction(t.Result), TaskContinuationOptions.OnlyOnRanToCompletion | TaskContinuationOptions.ExecuteSynchronously);
+            if (cancellationToken == default)
+                cancellationToken = CancellationToken.None;
+
+            if (taskScheduler == default)
+                taskScheduler = TaskScheduler.Current;
+
+            return task.ContinueWith(t => followingAction(t.Result), cancellationToken, SuccessOptions, taskScheduler);
+        }
+
+        /// <summary>
+        /// Waits for the current task to complete, then runs the following task.
+        /// </summary>
+        /// <typeparam name="TResult">The return type of the task.</typeparam>
+        /// <typeparam name="TNewResult">The return type of the following task.</typeparam>
+        /// <param name="task">The task being run.</param>
+        /// <param name="followingAction">The following action to run using the result of the task.</param>
+        /// <returns>The resultant task of the following task.</returns>
+        public static async Task<TNewResult> Then<TResult, TNewResult>(
+            this Task<TResult> task,
+            Func<TResult, Task<TNewResult>> followingAction,
+            CancellationToken cancellationToken = default,
+            TaskScheduler taskScheduler = default)
+        {
+            // TODO; extra params
+            if (cancellationToken != default)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+            }
+
+            var result = await task;
+            if (cancellationToken != default)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+            }
+
+            var newResult = await followingAction(result);
+            return newResult;
         }
     }
 }
