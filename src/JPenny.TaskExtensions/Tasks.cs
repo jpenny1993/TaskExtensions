@@ -18,7 +18,8 @@ namespace JPenny.TaskExtensions
         /// <returns>The provided task for further extensions.</returns>
         public static Task<TResult> Finally<TResult>(this Task<TResult> task, Action<Task<TResult>> alwaysAction)
         {
-            task.ContinueWith(t => alwaysAction(t), TaskContinuationOptions.PreferFairness | TaskContinuationOptions.ExecuteSynchronously).ConfigureAwait(false);
+            task.ContinueWith(t => alwaysAction(t), TaskContinuationOptions.PreferFairness | TaskContinuationOptions.ExecuteSynchronously)
+                .ConfigureAwait(false);
             return task;
         }
 
@@ -86,11 +87,22 @@ namespace JPenny.TaskExtensions
         /// <returns>The provided task for further extensions.</returns>
         public static Task<TResult> OnSuccess<TResult>(this Task<TResult> task, Action<TResult> successAction)
         {
-            return task.ContinueWith(t =>
-            {
-                successAction(t.Result);
-                return t.Result;
-            }, TaskContinuationOptions.OnlyOnRanToCompletion | TaskContinuationOptions.ExecuteSynchronously);
+            task.ContinueWith(t => successAction(t.Result), TaskContinuationOptions.OnlyOnRanToCompletion | TaskContinuationOptions.ExecuteSynchronously)
+                .ConfigureAwait(false);
+            return task;
+        }
+
+        /// <summary>
+        /// Waits for the current task to complete, then runs the following action.
+        /// </summary>
+        /// <typeparam name="TResult">The return type of the task.</typeparam>
+        /// <typeparam name="TNewResult">The return type of the following task.</typeparam>
+        /// <param name="task">The task being run.</param>
+        /// <param name="followingAction">The following action to run using the result of the task.</param>
+        /// <returns>The resultant task of the following task.</returns>
+        public static Task Then<TResult>(this Task<TResult> task, Action<TResult> followingAction)
+        {
+            return task.ContinueWith(t => followingAction(t.Result), TaskContinuationOptions.OnlyOnRanToCompletion | TaskContinuationOptions.ExecuteSynchronously);
         }
 
         /// <summary>
@@ -104,20 +116,6 @@ namespace JPenny.TaskExtensions
         public static Task<TNewResult> Then<TResult, TNewResult>(this Task<TResult> task, Func<TResult, TNewResult> followingAction)
         {
             return task.ContinueWith(t => followingAction(t.Result), TaskContinuationOptions.OnlyOnRanToCompletion | TaskContinuationOptions.ExecuteSynchronously);
-        }
-
-        /// <summary>
-        /// Waits for the current task to complete, then runs the following task.
-        /// </summary>
-        /// <typeparam name="TResult">The return type of the task.</typeparam>
-        /// <typeparam name="TNewResult">The return type of the following task.</typeparam>
-        /// <param name="task">The task being run.</param>
-        /// <param name="followingTask">The action to setup and return the next task.</param>
-        /// <returns>The resultant task of the following task.</returns>
-        public async static Task<TNewResult> Then<TResult, TNewResult>(this Task<TResult> task, Func<TResult, Task<TNewResult>> followingTask)
-        {
-            var result = await task;
-            return await followingTask(result);
         }
     }
 }

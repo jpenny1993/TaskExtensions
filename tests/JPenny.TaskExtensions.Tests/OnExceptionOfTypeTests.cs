@@ -5,11 +5,6 @@ using NUnit.Framework;
 
 namespace JPenny.TaskExtensions.Tests
 {
-    public interface IExceptionOfTypeAction
-    {
-        void ExceptionAction(Exception ex);
-    }
-
     public class OnExceptionOfTypeTests
     {
         private Factory _taskFactory;
@@ -24,55 +19,55 @@ namespace JPenny.TaskExtensions.Tests
         public void Should_not_run_on_cancelled()
         {
             // Arrange
-            var mock = new Mock<IExceptionOfTypeAction>();
-            mock.Setup(x => x.ExceptionAction(It.IsAny<Exception>()));
+            var mock = new Mock<IAction<Exception>>();
+            mock.Setup(x => x.Action(It.IsAny<Exception>()));
 
             var task = _taskFactory.GetCancelledTask<int>();
             var mockObject = mock.Object;
 
             // Act
-            var fixture = Tasks.OnException(task, mockObject.ExceptionAction);
+            var fixture = Tasks.OnException(task, mockObject.Action);
 
             // Assert
             Assert.ThrowsAsync<TaskCanceledException>(async () => await fixture);
 
-            mock.Verify(x => x.ExceptionAction(It.IsAny<Exception>()), Times.Never);
+            mock.Verify(x => x.Action(It.IsAny<Exception>()), Times.Never);
         }
 
         [Test]
         public async Task Should_not_run_on_completion()
         {
             // Arrange
-            var mock = new Mock<IExceptionOfTypeAction>();
-            mock.Setup(x => x.ExceptionAction(It.IsAny<Exception>()));
+            var mock = new Mock<IAction<Exception>>();
+            mock.Setup(x => x.Action(It.IsAny<Exception>()));
 
             var task = _taskFactory.GetNumber();
             var mockObject = mock.Object;
 
             // Act
-            var result = await Tasks.OnException(task, mockObject.ExceptionAction);
+            var result = await Tasks.OnException(task, mockObject.Action);
 
             // Assert
-            mock.Verify(x => x.ExceptionAction(It.IsAny<Exception>()), Times.Never);
+            mock.Verify(x => x.Action(It.IsAny<Exception>()), Times.Never);
         }
 
         [Test]
         public void Should_run_on_exception()
         {
             // Arrange
-            var mock = new Mock<IExceptionOfTypeAction>();
-            mock.Setup(x => x.ExceptionAction(It.IsAny<Exception>()));
+            var mock = new Mock<IAction<Exception>>();
+            mock.Setup(x => x.Action(It.IsAny<Exception>()));
 
             var task = _taskFactory.ThrowSystemException<int>();
             var mockObject = mock.Object;
 
             // Act
-            var fixture = Tasks.OnException(task, mockObject.ExceptionAction);
+            var fixture = Tasks.OnException(task, mockObject.Action);
 
             // Assert
             Assert.ThrowsAsync<Exception>(async () => await fixture);
 
-            mock.Verify(x => x.ExceptionAction(It.IsAny<Exception>()), Times.Once);
+            mock.Verify(x => x.Action(It.IsAny<Exception>()), Times.Once);
         }
     }
 }
