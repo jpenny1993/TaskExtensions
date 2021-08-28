@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace JPenny.TaskExtensions
@@ -10,13 +11,21 @@ namespace JPenny.TaskExtensions
 
     public class TaskResolver : ITaskResolver
     {
-        public static ITaskResolver Default { get; } = new TaskResolver(() => Task.CompletedTask);
-
         private Func<Task> _resolveFunc;
 
         public TaskResolver(Func<Task> resolveFunc)
         {
             _resolveFunc = resolveFunc;
+        }
+
+        public TaskResolver(Action action, CancellationToken cancellationToken)
+            : this(() => new Task(action, cancellationToken))
+        {
+        }
+
+        public TaskResolver(Task task)
+            : this(() => task)
+        {
         }
 
         public Task Resolve()
@@ -36,6 +45,13 @@ namespace JPenny.TaskExtensions
         {
             _previousTask = previousTask;
             _resolveFunc = resolveFunc;
+        }
+
+        public TaskResolver(
+            IPipelineTask<TPreviousResult> previousTask,
+            Action<TPreviousResult> action)
+            : this(previousTask, (result) => new Task(() => action(result)))
+        {
         }
 
         public Task Resolve()

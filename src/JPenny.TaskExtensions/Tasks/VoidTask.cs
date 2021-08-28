@@ -6,7 +6,7 @@ namespace JPenny.TaskExtensions.Tasks
     {
         public Task ExecuteAsync()
         {
-            var task = TaskProvider.Resolve();
+            var task = MainTaskResolver.Resolve();
             return ExecuteAsync(task);
         }
     }

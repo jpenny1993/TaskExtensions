@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using JPenny.TaskExtensions.Builders;
 
 namespace JPenny.TaskExtensions
 {
@@ -10,6 +11,8 @@ namespace JPenny.TaskExtensions
         public CancellationTokenSource CancellationTokenSource { get; internal set; } = new CancellationTokenSource();
 
         public Task CancelledAction { get; internal set; }
+
+        public Task SuccessAction { get; internal set; }
 
         public Task CompletedAction { get; internal set; }
 
@@ -29,15 +32,24 @@ namespace JPenny.TaskExtensions
 
             try
             {
-                foreach (var pipelineTask in Tasks)
+                int taskIndex;
+                for (taskIndex = 0; taskIndex < Tasks.Count; taskIndex++)
                 {
+                    IPipelineTask pipelineTask = Tasks[taskIndex];
+
                     token.ThrowIfCancellationRequested();
                     await Pipeline.ExecuteAsync(pipelineTask);
 
                     if (pipelineTask.Cancelled || pipelineTask.Failed)
                     {
+                        await Pipeline.ExecuteAsync(CancelledAction);
                         break;
                     }
+                }
+
+                if (taskIndex == Tasks.Count)
+                {
+                    await Pipeline.ExecuteAsync(SuccessAction);
                 }
             }
             catch (TaskCanceledException)
@@ -74,11 +86,16 @@ namespace JPenny.TaskExtensions
             }
         }
 
-        public static PipelineOptionsBuilder Create() => new PipelineOptionsBuilder();
+        public static PipelineBuilder Create() => new PipelineBuilder();
 
         public static Task ExecuteAsync(IPipelineTask pipeline)
         {
             var task = pipeline.ExecuteAsync();
+            return Pipeline.ExecuteAsync(task);
+        }
+        public static Task ExecuteAsync(ITaskResolver resolver)
+        {
+            var task = resolver?.Resolve();
             return Pipeline.ExecuteAsync(task);
         }
 

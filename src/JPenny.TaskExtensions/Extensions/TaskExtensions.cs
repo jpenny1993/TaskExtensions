@@ -15,44 +15,6 @@ namespace JPenny.TaskExtensions.Extensions
         private const TaskContinuationOptions ErrorOptions = TaskContinuationOptions.OnlyOnFaulted | DefaultOptions;
         private const TaskContinuationOptions SuccessOptions = TaskContinuationOptions.OnlyOnRanToCompletion | DefaultOptions;
 
-        // TODO: maybe do this
-        //public static Task<TNewResult> ContinueWith<TResult, TNewResult>(
-        //    this Task<TResult> task,
-        //    Func<Task<TResult>, Task<TNewResult>> continueWithTask,
-        //    CancellationToken cancellationToken)
-        //{
-        //    if (cancellationToken == default)
-        //    {
-        //        cancellationToken = CancellationToken.None;
-        //    }
-
-        //    var tcs = new TaskCompletionSource<TNewResult>();
-        //    task.ContinueWith(t =>
-        //    {
-        //        if (cancellationToken.IsCancellationRequested)
-        //        {
-        //            tcs.SetCanceled();
-        //        }
-        //        continueWithTask(t).ContinueWith(t2 =>
-        //        {
-        //            if (cancellationToken.IsCancellationRequested || t2.IsCanceled)
-        //            {
-        //                tcs.TrySetCanceled();
-        //            }
-        //            else if (t2.IsFaulted)
-        //            {
-        //                tcs.TrySetException(t2.Exception);
-        //            }
-        //            else
-        //            {
-        //                tcs.TrySetResult(t2.Result);
-        //            }
-        //        }).ConfigureAwait(false);
-        //    }).ConfigureAwait(false);
-
-        //    return tcs.Task;
-        //}
-
         /// <summary>
         /// Runs the provided action when the task has finished.
         /// It will run regardless of if the task has completed successfully or not.
@@ -230,36 +192,6 @@ namespace JPenny.TaskExtensions.Extensions
                 taskScheduler = TaskScheduler.Current;
 
             return task.ContinueWith(t => followingAction(t.Result), cancellationToken, SuccessOptions, taskScheduler);
-        }
-
-        /// <summary>
-        /// Waits for the current task to complete, then runs the following task.
-        /// </summary>
-        /// <typeparam name="TResult">The return type of the task.</typeparam>
-        /// <typeparam name="TNewResult">The return type of the following task.</typeparam>
-        /// <param name="task">The task being run.</param>
-        /// <param name="followingAction">The following action to run using the result of the task.</param>
-        /// <returns>The resultant task of the following task.</returns>
-        public static async Task<TNewResult> Then<TResult, TNewResult>(
-            this Task<TResult> task,
-            Func<TResult, Task<TNewResult>> followingAction,
-            CancellationToken cancellationToken = default,
-            TaskScheduler taskScheduler = default)
-        {
-            // TODO; extra params
-            if (cancellationToken != default)
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-            }
-
-            var result = await task;
-            if (cancellationToken != default)
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-            }
-
-            var newResult = await followingAction(result);
-            return newResult;
         }
     }
 }

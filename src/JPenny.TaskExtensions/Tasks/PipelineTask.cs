@@ -16,13 +16,15 @@ namespace JPenny.TaskExtensions.Tasks
 
         public bool Succeeded { get; private set; }
 
-        public Task CancelledAction { get; set; }
+        public ITaskResolver MainTaskResolver { get; set; }
 
-        public Task CompletedAction { get; set; }
+        public ITaskResolver CancelledTaskResolver { get; set; }
+
+        public ITaskResolver SuccessTaskResolver { get; set; }
+
+        public ITaskResolver CompletedTaskResolver { get; set; }
 
         public IDictionary<Type, Action<Exception>> ExceptionHandlers { get; internal set; } = new Dictionary<Type, Action<Exception>>();
-
-        public ITaskResolver TaskProvider { get; set; }
 
         protected async Task ExecuteAsync(Task task)
         {
@@ -31,43 +33,41 @@ namespace JPenny.TaskExtensions.Tasks
             {
                 await Pipeline.ExecuteAsync(task);
                 Succeeded = true;
+
+                await Pipeline.ExecuteAsync(SuccessTaskResolver);
             }
             catch (TaskCanceledException)
             {
                 Cancelled = true;
-                await Pipeline.ExecuteAsync(CancelledAction);
+                await Pipeline.ExecuteAsync(CancelledTaskResolver);
             }
             catch (AggregateException aggEx)
             {
                 Failed = true;
-                aggEx.Handle(ex =>
-                {
-                    var exType = ex.GetType();
-                    if (ExceptionHandlers.ContainsKey(exType))
-                    {
-                        var handler = ExceptionHandlers[exType];
-                        handler(ex);
-                        return true;
-                    }
-                    return false;
-                });
+                aggEx.Handle(HandleException);
             }
             catch (Exception ex)
             {
                 Failed = true;
-                var exType = ex.GetType();
-                if (ExceptionHandlers.ContainsKey(exType))
-                {
-                    var handler = ExceptionHandlers[exType];
-                    handler(ex);
-                    return;
-                }
+                HandleException(ex);
             }
             finally
             {
                 Completed = true;
-                await Pipeline.ExecuteAsync(CompletedAction);
+                await Pipeline.ExecuteAsync(CompletedTaskResolver);
             }
+        }
+
+        private bool HandleException(Exception ex)
+        {
+            var exType = ex.GetType();
+            if (ExceptionHandlers.ContainsKey(exType))
+            {
+                var handler = ExceptionHandlers[exType];
+                handler(ex);
+                return true;
+            }
+            return false;
         }
     }
 }

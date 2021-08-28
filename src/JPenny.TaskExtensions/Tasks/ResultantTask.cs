@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
 
 namespace JPenny.TaskExtensions.Tasks
 {
@@ -10,21 +8,9 @@ namespace JPenny.TaskExtensions.Tasks
 
         public TResult Result => _task.Result;
 
-        public ResultantTask(
-            ITaskResolver taskResolver,
-            Dictionary<Type, Action<Exception>> exceptionHandlers,
-            Task onCancelled,
-            Task onCompeleted)
-        {
-            TaskProvider = taskResolver;
-            ExceptionHandlers = exceptionHandlers;
-            CancelledAction = onCancelled;
-            CompletedAction = onCompeleted;
-        }
-
         public Task ExecuteAsync()
         {
-            _task = (Task<TResult>)TaskProvider.Resolve();
+            _task = (Task<TResult>)MainTaskResolver.Resolve();
             return ExecuteAsync(_task);
         }
     }
