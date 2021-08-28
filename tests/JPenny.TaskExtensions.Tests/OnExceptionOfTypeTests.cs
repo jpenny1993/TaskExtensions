@@ -3,6 +3,8 @@ using System.Threading.Tasks;
 using Moq;
 using NUnit.Framework;
 
+using Utility = JPenny.TaskExtensions.Extensions.TaskExtensions;
+
 namespace JPenny.TaskExtensions.Tests
 {
     public class OnExceptionOfTypeTests
@@ -26,7 +28,7 @@ namespace JPenny.TaskExtensions.Tests
             var mockObject = mock.Object;
 
             // Act
-            var fixture = Tasks.OnException(task, mockObject.Action);
+            var fixture = Utility.OnException(task, mockObject.Action);
 
             // Assert
             Assert.ThrowsAsync<TaskCanceledException>(async () => await fixture);
@@ -45,7 +47,7 @@ namespace JPenny.TaskExtensions.Tests
             var mockObject = mock.Object;
 
             // Act
-            var result = await Tasks.OnException(task, mockObject.Action);
+            var result = await Utility.OnException(task, mockObject.Action);
 
             // Assert
             mock.Verify(x => x.Action(It.IsAny<Exception>()), Times.Never);
@@ -62,7 +64,7 @@ namespace JPenny.TaskExtensions.Tests
             var mockObject = mock.Object;
 
             // Act
-            var fixture = Tasks.OnException(task, mockObject.Action);
+            var fixture = Utility.OnException(task, mockObject.Action);
 
             // Assert
             Assert.ThrowsAsync<Exception>(async () => await fixture);

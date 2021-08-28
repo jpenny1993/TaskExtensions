@@ -2,12 +2,12 @@
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace JPenny.TaskExtensions
+namespace JPenny.TaskExtensions.Extensions
 {
     /// <summary>
     /// A set of extension methods to allow fluent chaining of tasks and actions.
     /// </summary>
-    public static class Tasks
+    public static class TaskExtensions
     {
         private const TaskContinuationOptions DefaultOptions = TaskContinuationOptions.PreferFairness | TaskContinuationOptions.ExecuteSynchronously;
 

@@ -10,49 +10,36 @@ namespace JPenny.TaskExtensions.ConsoleApp
             var tasks = new DummyTasks();
 
             // Singular Task Pipeline
-            await new Pipe<int>(tasks.GetNumber())
-                .OnSuccess(result => Console.WriteLine("Success: {0}", result))
-                .OnException(ex => Console.WriteLine("Global Exception: {0}", ex))
-                .OnException<NotImplementedException>(ex => Console.WriteLine("Specific Exception: {0}", ex))
+            await Pipeline.Create()
+                .Task(tasks.GetNumber())
+                .Then(options => options
+                    .Action((int result) => Console.WriteLine("Success: {0}", result))
+                    .Catch<NotImplementedException>(ex => Console.WriteLine("Specific Exception: {0}", ex))
+                )
                 .OnCancelled(() => Console.WriteLine("Cancelled"))
-                .OnComplete(() => Console.WriteLine("Complete"))
-                .RunAsync();
+                .OnCompleted(() => Console.WriteLine("Complete"))
+                .BuildAndExecuteAsync();
 
             // Multiple Synchronous but separate pipeline tasks
             await Pipeline.Create()
-                .Pipe(tasks.GetNumber(), p =>
-                {
-                    p.OnSuccess(result => Console.WriteLine("Success: {0}", result))
-                    .OnException(ex => Console.WriteLine("Global Exception: {0}", ex))
-                    .OnException<NotImplementedException>(ex => Console.WriteLine("Specific Exception: {0}", ex))
-                    .OnCancelled(() => Console.WriteLine("Cancelled"))
-                    .OnComplete(() => Console.WriteLine("Complete"));
-                })
-                .Pipe(() => {
-                    return new Pipe<string>(tasks.GetString())
-                    .OnSuccess(result => Console.WriteLine("Success: {0}", result))
-                    .OnException(ex => Console.WriteLine("Global Exception: {0}", ex))
-                    .OnException<NotImplementedException>(ex => Console.WriteLine("Specific Exception: {0}", ex))
-                    .OnCancelled(() => Console.WriteLine("Cancelled"))
-                    .OnComplete(() => Console.WriteLine("Complete"));
-                })
-                .Pipe(() => {
-                    return new Pipe<int>(tasks.ThrowSystemException<int>())
-                    .OnSuccess(result => Console.WriteLine("Success: {0}", result))
-                    .OnException(ex => Console.WriteLine("Global Exception: {0}", ex))
-                    .OnException<NotImplementedException>(ex => Console.WriteLine("Specific Exception: {0}", ex))
-                    .OnCancelled(() => Console.WriteLine("Cancelled"))
-                    .OnComplete(() => Console.WriteLine("Complete"));
-                })
-                .Pipe(() => {
-                    return new Pipe<string>(tasks.GetString())
-                    .OnSuccess(result => Console.WriteLine("Success: {0}", result))
-                    .OnException(ex => Console.WriteLine("Global Exception: {0}", ex))
-                    .OnException<NotImplementedException>(ex => Console.WriteLine("Specific Exception: {0}", ex))
-                    .OnCancelled(() => Console.WriteLine("Cancelled"))
-                    .OnComplete(() => Console.WriteLine("Complete"));
-                })
-                .RunAsync();
+                .OnCancelled(() => Console.WriteLine("Cancelled"))
+                .OnCompleted(() => Console.WriteLine("Complete"))
+                .Task(options => options
+                    .Action(tasks.GetNumber())
+                    .Catch(ex => Console.WriteLine("Specific Exception: {0}", ex))
+                    //.OnSuccess(result => Console.WriteLine("Success: {0}", result))
+                )
+                .Then((int result) => Console.WriteLine("Success: {0}", result))
+                .Then(options => options
+                    .Action(tasks.GetString())
+                    .Catch<NotImplementedException>(ex => Console.WriteLine("Specific Exception: {0}", ex))
+                )
+                .Then(result => Console.WriteLine("Success: {0}", result))
+                .Then(options => options
+                    .Action((Task)tasks.ThrowSystemException<int>())
+                    .Catch(ex => Console.WriteLine("Exception: {0}", ex))
+                )
+                .BuildAndExecuteAsync();
 
             Console.ReadLine();
         }

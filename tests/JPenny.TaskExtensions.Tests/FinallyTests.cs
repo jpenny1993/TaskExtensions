@@ -3,6 +3,8 @@ using System.Threading.Tasks;
 using Moq;
 using NUnit.Framework;
 
+using Utility = JPenny.TaskExtensions.Extensions.TaskExtensions;
+
 namespace JPenny.TaskExtensions.Tests
 {
     public interface IFinallyAction
@@ -31,7 +33,7 @@ namespace JPenny.TaskExtensions.Tests
             var mockObject = mock.Object;
 
             // Act
-            var fixture = Tasks.Finally(task, x => mockObject.FinallyAction(x));
+            var fixture = Utility.Finally(task, x => mockObject.FinallyAction(x));
 
             // Assert
             Assert.ThrowsAsync<TaskCanceledException>(async () => await fixture);
@@ -50,7 +52,7 @@ namespace JPenny.TaskExtensions.Tests
             var mockObject = mock.Object;
 
             // Act
-            var result = await Tasks.Finally(task, x => mockObject.FinallyAction(x));
+            var result = await Utility.Finally(task, x => mockObject.FinallyAction(x));
 
             // Assert
             mock.Verify(x => x.FinallyAction(It.IsAny<Task<int>>()), Times.Once);
@@ -67,7 +69,7 @@ namespace JPenny.TaskExtensions.Tests
             var mockObject = mock.Object;
 
             // Act
-            var fixture = Tasks.Finally(task, x => mockObject.FinallyAction(x));
+            var fixture = Utility.Finally(task, x => mockObject.FinallyAction(x));
 
             // Assert
             Assert.ThrowsAsync<Exception>(async () => await fixture);

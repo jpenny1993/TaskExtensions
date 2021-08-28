@@ -5,40 +5,98 @@ using System.Threading.Tasks;
 
 namespace JPenny.TaskExtensions
 {
-    public class Pipeline
+    public sealed class Pipeline
     {
-        public CancellationTokenSource CancellationTokenSource { get; } = new CancellationTokenSource();
-        public IList<IPipe> Tasks { get; } = new List<IPipe>();
+        public CancellationTokenSource CancellationTokenSource { get; internal set; } = new CancellationTokenSource();
+
+        public Task CancelledAction { get; internal set; }
+
+        public Task CompletedAction { get; internal set; }
+
+        public IDictionary<Type, Action<Exception>> ExceptionHandlers { get; internal set; } = new Dictionary<Type, Action<Exception>>();
+
+        public IList<IPipelineTask> Tasks { get; internal set; } = new List<IPipelineTask>();
 
         public void Cancel() => CancellationTokenSource.Cancel();
 
-        public void CancelAfter(TimeSpan timeSpan) => CancellationTokenSource.CancelAfter(timeSpan);
-
-        public Pipeline Pipe(Func<IPipe> pipelineTask)
+        internal Pipeline()
         {
-            var pipe = pipelineTask();
-            Tasks.Add(pipe);
-            return this;
         }
 
-        public Pipeline Pipe<TResult>(Task<TResult> task, Action<Pipe<TResult>> pipelineTask)
+        public async Task ExecuteAsync()
         {
-            var pipe = new Pipe<TResult>(task);
-            pipelineTask(pipe);
-            Tasks.Add(pipe);
-            return this;
-        }
+            var token = CancellationTokenSource.Token;
 
-        // TODO: allow following pipes to receive the result of the previous pipe
-
-        public async Task RunAsync()
-        {
-            foreach (var task in Tasks)
+            try
             {
-                await task.RunAsync(CancellationTokenSource.Token);
+                foreach (var pipelineTask in Tasks)
+                {
+                    token.ThrowIfCancellationRequested();
+                    await Pipeline.ExecuteAsync(pipelineTask);
+
+                    if (pipelineTask.Cancelled || pipelineTask.Failed)
+                    {
+                        break;
+                    }
+                }
+            }
+            catch (TaskCanceledException)
+            {
+                await Pipeline.ExecuteAsync(CancelledAction);
+            }
+            catch (AggregateException aggEx)
+            {
+                aggEx.Handle(ex =>
+                {
+                    var exType = ex.GetType();
+                    if (ExceptionHandlers.ContainsKey(exType))
+                    {
+                        var handler = ExceptionHandlers[exType];
+                        handler(ex);
+                        return true;
+                    }
+                    return false;
+                });
+            }
+            catch (Exception ex)
+            {
+                var exType = ex.GetType();
+                if (ExceptionHandlers.ContainsKey(exType))
+                {
+                    var handler = ExceptionHandlers[exType];
+                    handler(ex);
+                    return;
+                }
+            }
+            finally
+            {
+                await Pipeline.ExecuteAsync(CompletedAction);
             }
         }
 
-        public static Pipeline Create() => new Pipeline();
+        public static PipelineOptionsBuilder Create() => new PipelineOptionsBuilder();
+
+        public static Task ExecuteAsync(IPipelineTask pipeline)
+        {
+            var task = pipeline.ExecuteAsync();
+            return Pipeline.ExecuteAsync(task);
+        }
+
+        public static async Task ExecuteAsync(Task task)
+        {
+            // Skip tasks that aren't defined
+            if (task == default)
+            {
+                return;
+            }
+
+            // Start tasks that haven't been started
+            if (task.Status == TaskStatus.Created)
+            {
+                task.Start();
+            }
+
+            await task.ConfigureAwait(false);
+        }
     }
 }
