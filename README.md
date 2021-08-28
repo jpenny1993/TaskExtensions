@@ -7,24 +7,28 @@ static async Task Main(string[] args)
 {
     var x = new DummyTasks();
 
-    await Pipeline
-        .Init(x.GetNumber(3))
-            .OnException(ex => Console.WriteLine($"Error: {ex.Flatten().GetType().Name} | {ex.Flatten().Message}"))
+    await Pipeline.Create()
+        .Task(o => o
+			.Action(x.GetNumber(3))
+            .Catch(ex => Console.WriteLine($"Error: {ex.Flatten().GetType().Name} | {ex.Flatten().Message}"))
             .OnCancelled(() => Console.WriteLine("Cancelled stage 1"))
             .OnSuccess(r => Console.WriteLine($"Success: number is {r}"))
-            .Finally(x => Console.WriteLine("Finished stage 1"))
-        .Then(n => x.GetString(n))
-            .OnException(ex => Console.WriteLine($"Error: {ex.Flatten().GetType().Name} | {ex.Flatten().Message}"))
-            .OnCancelled(() => Console.WriteLine("Cancelled stage 2"))
-            .OnSuccess(r => Console.WriteLine($"Success: string is {r}"))
-            .Finally(x => Console.WriteLine("Finished stage 2"))
-        .Then(n => x.NotImplemented())
-            .OnException(ex => Console.WriteLine($"Error: {ex.Flatten().GetType().Name} | {ex.Flatten().Message}"))
-            .OnException((NotImplementedException ex) => Console.WriteLine($"Caught: {ex.GetType().Name} | {ex.Message}"))
+            .OnCompleted(x => Console.WriteLine("Finished stage 1"))
+		)
+        .Then(x.GetString(n))
+		.Then((string str) => Console.WriteLine("String calculated: {0}", str))
+        .Then(o => o
+			.Action(x.NotImplemented())
+            .Catch(ex => Console.WriteLine($"Error: {ex.Flatten().GetType().Name} | {ex.Flatten().Message}"))
+            .Catch((NotImplementedException ex) => Console.WriteLine($"Caught: {ex.GetType().Name} | {ex.Message}"))
             .OnCancelled(() => Console.WriteLine("Cancelled stage 3"))
             .OnSuccess(r => Console.WriteLine($"Success: this should never happen"))
-            .Finally(x => Console.WriteLine("Finished stage 3"))
-        .Build(suppressErrors: true);
+            .OnCompleted(x => Console.WriteLine("Finished stage 3"))
+		)
+		.OnSuccess(() => Console.WriteLine("All tasks ran successfully."))
+		.OnCancelled(() => Console.WriteLine("Pipeline aborted."))
+		.OnCompleted(() => Console.WriteLine("Pipeline Finished..."))
+        .BuildAndExecuteAsync();
 
     Console.ReadLine();
 }
@@ -33,7 +37,10 @@ static async Task Main(string[] args)
 Expected Output:
 ```
 Success: number is 3
-Success: string is 3
-Error: NotImplementedException | ...
+Finished stage 1
+String calculated: 3
 Caught: NotImplementedException | ...
+Finished stage 3
+Pipeline aborted.
+Pipeline finished...
 ```
