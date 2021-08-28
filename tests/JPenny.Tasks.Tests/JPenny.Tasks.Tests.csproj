@@ -19,7 +19,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\JPenny.TaskExtensions\JPenny.Tasks.csproj" />
+    <ProjectReference Include="..\..\src\JPenny.Tasks\JPenny.Tasks.csproj" />
   </ItemGroup>
 
 </Project>
