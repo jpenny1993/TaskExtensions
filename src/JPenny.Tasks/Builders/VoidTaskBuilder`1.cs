@@ -6,7 +6,7 @@ using JPenny.Tasks.Resolvers;
 
 namespace JPenny.Tasks.Builders
 {
-    public sealed class VoidTaskBuilder<TInput> : TaskBuilder
+    public sealed class VoidTaskBuilder<TInput> : TaskBuilderBase
     {
         private IPipelineTask<TInput> PreviousTask { get; }
 

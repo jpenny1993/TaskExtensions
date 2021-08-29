@@ -6,7 +6,7 @@ using JPenny.Tasks.Resolvers;
 
 namespace JPenny.Tasks.Builders
 {
-    public sealed class ResultantTaskBuilder<TInput, TOutput> : TaskBuilder
+    public sealed class ResultantTaskBuilder<TInput, TOutput> : TaskBuilderBase
     {
         private IPipelineTask<TInput> PreviousTask { get; }
 
@@ -20,6 +20,12 @@ namespace JPenny.Tasks.Builders
         public ResultantTaskBuilder<TInput, TOutput> Action(Action<TInput> action)
         {
             MainTask = new TaskResolver<TInput>(PreviousTask, action);
+            return this;
+        }
+
+        public ResultantTaskBuilder<TInput, TOutput> Action(Func<TInput, TOutput> function)
+        {
+            MainTask = new TaskResolver<TInput, TOutput>(PreviousTask, function);
             return this;
         }
 

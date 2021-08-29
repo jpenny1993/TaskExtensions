@@ -12,7 +12,7 @@ namespace JPenny.Tasks.ConsoleApp
             // Singular Task Pipeline
             await Pipeline.Create()
                 .Task(tasks.GetNumber())
-                .BuildThen<int>(options => options
+                .ThenBuilder<int>(options => options
                     .Action(result => Console.WriteLine("Task 1 Output: {0}", result))
                     .Catch<NotImplementedException>(ex => Console.WriteLine("Task 1: Specific Exception, {0}", ex))
                     .Catch(ex => Console.WriteLine("Task 1: Exception, {0}", ex))
@@ -32,10 +32,26 @@ namespace JPenny.Tasks.ConsoleApp
                 .Then((int result) => Console.WriteLine("Success: {0}", result))
                 .Task(tasks.GetString())
                 .Then((string result) => Console.WriteLine("Success: {0}", result))
-                .BuildTask(options => options
+                .TaskBuilder(options => options
                     .Action(tasks.ThrowSystemException<int>())
                     .Catch(ex => Console.WriteLine("Exception: {0}", ex))
                 )
+                .BuildAndExecuteAsync();
+
+            await Pipeline.Create()
+                .TaskBuilder<int>(t => t
+                    .Action(tasks.GetNumber())
+                    .OnSuccess(result => Console.WriteLine("Task 1: Number generated = {0}", result))
+                    .OnCompleted(() => Console.WriteLine("Task 1: Completed"))
+                )
+                .ThenBuilder<int>(t => t
+                    .Action(task1Result => (task1Result % 2 == 0) ? (task1Result / 2) : (task1Result * 3 + 1))
+                    .OnSuccess(result => Console.WriteLine("Task 2: Number generated = {0}", result))
+                    .OnCompleted(() => Console.WriteLine("Task 2: Completed"))
+                )
+                .Then(task2Result => task2Result + 7)
+                .Then(task3Result => Console.WriteLine("Task 4: Task 3 Result = {0}", task3Result))
+                .OnCompleted(() => Console.WriteLine("Pipeline 3: Complete"))
                 .BuildAndExecuteAsync();
 
             Console.ReadLine();

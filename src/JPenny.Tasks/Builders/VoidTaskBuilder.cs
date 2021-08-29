@@ -6,7 +6,7 @@ using JPenny.Tasks.Resolvers;
 
 namespace JPenny.Tasks.Builders
 {
-    public sealed class VoidTaskBuilder : TaskBuilder
+    public sealed class VoidTaskBuilder : TaskBuilderBase
     {
         private ITaskResolver SuccessTask { get; set; }
 

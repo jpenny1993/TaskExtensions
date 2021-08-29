@@ -68,6 +68,13 @@ namespace JPenny.Tasks.Resolvers
             _resolveFunc = resolveFunc;
         }
 
+        public TaskResolver(
+            IPipelineTask<TPreviousResult> previousTask,
+            Func<TPreviousResult, TResult> resolveFunc)
+            :this(previousTask, (result) => Task.FromResult(resolveFunc(result)))
+        {
+        }
+
         public Task Resolve()
         {
             return _resolveFunc(_previousTask.Result);
