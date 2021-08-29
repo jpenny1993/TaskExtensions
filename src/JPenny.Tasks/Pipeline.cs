@@ -37,9 +37,7 @@ namespace JPenny.Tasks
                 for (taskIndex = 0; taskIndex < Tasks.Count; taskIndex++)
                 {
                     IPipelineTask pipelineTask = Tasks[taskIndex];
-
-                    token.ThrowIfCancellationRequested();
-                    await Pipeline.ExecuteAsync(pipelineTask);
+                    await Pipeline.ExecuteAsync(pipelineTask, token);
 
                     if (pipelineTask.Cancelled || pipelineTask.Failed)
                     {
@@ -52,10 +50,6 @@ namespace JPenny.Tasks
                 {
                     await Pipeline.ExecuteAsync(SuccessAction);
                 }
-            }
-            catch (TaskCanceledException)
-            {
-                await Pipeline.ExecuteAsync(CancelledAction);
             }
             catch (AggregateException aggEx)
             {
@@ -89,9 +83,9 @@ namespace JPenny.Tasks
 
         public static PipelineBuilder Create() => new PipelineBuilder();
 
-        public static Task ExecuteAsync(IPipelineTask pipeline)
+        public static Task ExecuteAsync(IPipelineTask pipelineTask, CancellationToken cancellationToken)
         {
-            var task = pipeline.ExecuteAsync();
+            var task = pipelineTask.ExecuteAsync(cancellationToken);
             return Pipeline.ExecuteAsync(task);
         }
         public static Task ExecuteAsync(ITaskResolver resolver)

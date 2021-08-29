@@ -1,13 +1,14 @@
-﻿using System.Threading.Tasks;
+﻿using System.Threading;
+using System.Threading.Tasks;
 
 namespace JPenny.Tasks.PipelineTasks
 {
     public sealed class VoidTask : PipelineTask, IPipelineTask
     {
-        public Task ExecuteAsync()
+        public Task ExecuteAsync(CancellationToken cancellationToken)
         {
             var task = MainTaskResolver.Resolve();
-            return ExecuteAsync(task);
+            return ExecuteAsync(task, cancellationToken);
         }
     }
 }

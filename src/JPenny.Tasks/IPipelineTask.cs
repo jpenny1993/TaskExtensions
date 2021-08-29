@@ -1,4 +1,5 @@
-﻿using System.Threading.Tasks;
+﻿using System.Threading;
+using System.Threading.Tasks;
 
 namespace JPenny.Tasks
 {
@@ -14,6 +15,6 @@ namespace JPenny.Tasks
 
         bool Succeeded { get; }
 
-        Task ExecuteAsync();
+        Task ExecuteAsync(CancellationToken cancellationToken);
     }
 }

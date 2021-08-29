@@ -19,6 +19,8 @@ namespace JPenny.Tasks.Builders
             public Task CompletedAction { get; set; }
 
             public IList<IPipelineTask> Tasks { get; } = new List<IPipelineTask>();
+
+            public IDictionary<Type, Action<Exception>> ExceptionHandlers { get; } = new Dictionary<Type, Action<Exception>>();
         }
 
         protected PipelineOptions Options { get; }

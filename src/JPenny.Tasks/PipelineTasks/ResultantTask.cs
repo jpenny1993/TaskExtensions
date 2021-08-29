@@ -1,4 +1,5 @@
-﻿using System.Threading.Tasks;
+﻿using System.Threading;
+using System.Threading.Tasks;
 
 namespace JPenny.Tasks.PipelineTasks
 {
@@ -8,10 +9,10 @@ namespace JPenny.Tasks.PipelineTasks
 
         public TResult Result => _task.Result;
 
-        public Task ExecuteAsync()
+        public Task ExecuteAsync(CancellationToken cancellationToken)
         {
             _task = (Task<TResult>)MainTaskResolver.Resolve();
-            return ExecuteAsync(_task);
+            return ExecuteAsync(_task, cancellationToken);
         }
     }
 }

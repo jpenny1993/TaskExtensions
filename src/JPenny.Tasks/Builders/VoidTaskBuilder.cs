@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Threading;
 using System.Threading.Tasks;
+using JPenny.Tasks.Extensions;
 using JPenny.Tasks.PipelineTasks;
 using JPenny.Tasks.Resolvers;
 
@@ -38,7 +39,7 @@ namespace JPenny.Tasks.Builders
         public VoidTaskBuilder Catch<TException>(Action<TException> onException)
             where TException : Exception
         {
-            AddExceptionHandler(onException);
+            ExceptionHandlers.AddExceptionHandler(onException);
             return this;
         }
 

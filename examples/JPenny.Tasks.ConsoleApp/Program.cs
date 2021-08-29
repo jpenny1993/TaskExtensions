@@ -54,6 +54,43 @@ namespace JPenny.Tasks.ConsoleApp
                 .OnCompleted(() => Console.WriteLine("Pipeline 3: Complete"))
                 .BuildAndExecuteAsync();
 
+            await Pipeline.Create()
+                .CancelAfter(4)
+                .Catch(ex => Console.WriteLine("Pipeline Error: {0}", ex.Message))
+                .OnCancelled(() => Console.WriteLine("Pipeline Aborted"))
+                .OnSuccess(() => Console.WriteLine("Pipeline Succeeded"))
+                .OnCompleted(() => Console.WriteLine("Pipeline Finished"))
+                .Task(() => Console.WriteLine("\r\nPipeline Started"))
+                .TaskBuilder(t => t
+                    .Action(() => Task.Delay(TimeSpan.FromSeconds(5)))
+                    .Catch(ex => Console.WriteLine("Task 1: Exception Caught"))
+                    .OnCancelled(() => Console.WriteLine("Task 1: Cancelled"))
+                    .OnSuccess(() => Console.WriteLine("Task 1: Success"))
+                    .OnCompleted(() => Console.WriteLine("Task 1: Finished"))
+                )
+                .TaskBuilder(t => t
+                    .Action(() => Task.Delay(TimeSpan.FromSeconds(5)))
+                    .Catch(ex => Console.WriteLine("Task 2: Exception Caught"))
+                    .OnCancelled(() => Console.WriteLine("Task 2: Cancelled"))
+                    .OnSuccess(() => Console.WriteLine("Task 2: Success"))
+                    .OnCompleted(() => Console.WriteLine("Task 2: Finished"))
+                )
+                .TaskBuilder(t => t
+                    .Action(() => Task.Delay(TimeSpan.FromSeconds(5)))
+                    .Catch(ex => Console.WriteLine("Task 3: Exception Caught"))
+                    .OnCancelled(() => Console.WriteLine("Task 3: Cancelled"))
+                    .OnSuccess(() => Console.WriteLine("Task 3: Success"))
+                    .OnCompleted(() => Console.WriteLine("Task 3: Finished"))
+                )
+                .TaskBuilder(t => t
+                    .Action(() => Task.Delay(TimeSpan.FromSeconds(5)))
+                    .Catch(ex => Console.WriteLine("Task 4: Exception Caught"))
+                    .OnCancelled(() => Console.WriteLine("Task 4: Cancelled"))
+                    .OnSuccess(() => Console.WriteLine("Task 4: Success"))
+                    .OnCompleted(() => Console.WriteLine("Task 4: Finished"))
+                )
+                .BuildAndExecuteAsync();
+
             Console.ReadLine();
         }
     }

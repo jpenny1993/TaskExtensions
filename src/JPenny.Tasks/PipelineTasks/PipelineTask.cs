@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 using JPenny.Tasks.Resolvers;
 
@@ -27,17 +28,19 @@ namespace JPenny.Tasks.PipelineTasks
 
         public IDictionary<Type, Action<Exception>> ExceptionHandlers { get; internal set; } = new Dictionary<Type, Action<Exception>>();
 
-        protected async Task ExecuteAsync(Task task)
+        protected async Task ExecuteAsync(Task task, CancellationToken cancellationToken)
         {
             Started = true;
             try
             {
+                cancellationToken.ThrowIfCancellationRequested();
+
                 await Pipeline.ExecuteAsync(task);
                 Succeeded = true;
 
                 await Pipeline.ExecuteAsync(SuccessTaskResolver);
             }
-            catch (TaskCanceledException)
+            catch (OperationCanceledException)
             {
                 Cancelled = true;
                 await Pipeline.ExecuteAsync(CancelledTaskResolver);

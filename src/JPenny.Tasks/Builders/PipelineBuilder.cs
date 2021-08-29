@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Threading;
 using System.Threading.Tasks;
+using JPenny.Tasks.Extensions;
 
 namespace JPenny.Tasks.Builders
 {
@@ -26,6 +27,16 @@ namespace JPenny.Tasks.Builders
         public PipelineBuilder CancellationTokenSource(CancellationTokenSource cancellationTokenSource)
         {
             Options.CancellationTokenSource = cancellationTokenSource;
+            return this;
+        }
+
+        public PipelineBuilder Catch(Action<Exception> onException)
+            => Catch<Exception>(onException);
+
+        public PipelineBuilder Catch<TException>(Action<TException> onException)
+            where TException : Exception
+        {
+            Options.ExceptionHandlers.AddExceptionHandler(onException);
             return this;
         }
 
