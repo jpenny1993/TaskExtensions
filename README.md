@@ -2,7 +2,7 @@
 Extensions on tasks, and an attempt to create a pipeline where multiple tasks can be chained.
 
 Example Usage:
-```
+```csharp
 static async Task Main(string[] args)
 {
     var x = new DummyTasks();
